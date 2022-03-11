@@ -278,20 +278,35 @@ func getInfoList(pid string, types string, options *common.ENOptions) []gjson.Re
 		data := gjson.Get(string(content), "data")
 		//判断一个获取的特殊值
 		if types == "relations/relationalMapAjax" {
-			data = gjson.Get(string(content), "data.investRecordData")
-		}
-		//判断是否多页，遍历获取所有数据
-		pageCount := data.Get("pageCount").Int()
-		if pageCount > 1 {
-			for i := 1; int(pageCount) >= i; i++ {
-				gologger.Infof("当前：%s,%d\n", types, i)
-				reqUrls := urls + "&p=" + strconv.Itoa(i)
-				content = common.GetReq(reqUrls, options)
-				listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
-			}
-		} else {
-			listData = data.Get("list").Array()
-		}
+            fields := []string{"data.investRecordData", "data.directorsData"}
+            for _, field := range fields {
+                data = gjson.Get(string(content), field)
+                pageCount := data.Get("pageCount").Int()
+                if pageCount > 1 {
+                    for i := 1; int(pageCount) >= i; i++ {
+                        gologger.Infof("当前：%s,%d\n", types, i)
+                        reqUrls := urls + "&p=" + strconv.Itoa(i)
+                        content = common.GetReq(reqUrls, options)
+                        listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
+                    }
+                } else {
+                    listData = data.Get("list").Array()
+                }
+            }
+        } else {
+            //判断是否多页，遍历获取所有数据
+            pageCount := data.Get("pageCount").Int()
+            if pageCount > 1 {
+                for i := 1; int(pageCount) >= i; i++ {
+                    gologger.Infof("当前：%s,%d\n", types, i)
+                    reqUrls := urls + "&p=" + strconv.Itoa(i)
+                    content = common.GetReq(reqUrls, options)
+                    listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
+                }
+            } else {
+                listData = data.Get("list").Array()
+            }
+        }
 	}
 	return listData
 
