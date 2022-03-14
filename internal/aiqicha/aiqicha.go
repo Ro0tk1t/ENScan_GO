@@ -6,6 +6,7 @@ package aiqicha
 import (
 	"fmt"
 	"github.com/olekukonko/tablewriter"
+    "github.com/antchfx/htmlquery"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"github.com/wgpsec/ENScan/common"
@@ -65,10 +66,38 @@ func outPutExcelByEnInfo(enInfo EnInfo, options *common.ENOptions) {
 		{"企业名称", enInfo.EntName},
 		{"法人代表", enInfo.legalPerson},
 		{"开业状态", enInfo.openStatus},
+		{"官网", enInfo.website},
+		{"地址", enInfo.addr},
+		{"成立日期", enInfo.startDate},
+		{"注册资本", enInfo.regCapital},
+		{"工商注册号", enInfo.licenseNumber},
+		{"税号", enInfo.taxNo},
 		{"电话", enInfo.telephone},
 		{"邮箱", enInfo.email},
+		{"经营范围", enInfo.scope},
 	}
 	f, _ = utils.ExportExcel("基本信息", baseHeaders, baseData, f)
+
+    shHeaders := []string{"股东名称", "持股比例", "认缴出资额", "认缴出资日期"}
+    var shData [][]interface{}
+    for _, s := range enInfo.shareholders {
+        var str []interface{}
+        str = append(str, s.name)
+        if s.subRatio == 0 {
+            str = append(str, "不详")
+        } else {
+            str = append(str, s.subRatio)
+        }
+        str = append(str, s.subMoney)
+        str = append(str, s.subDate)
+        shData = append(shData, str)
+    }
+
+	//ensInfoMap["shareholder"].api = "detail/shareholderAjax" // maybe not right
+	//ensInfoMap["shareholder"].field = []string{"name", "subRatio", "subMoney", "subDate"}
+	//ensInfoMap["shareholder"].keyWord = []string{"股东名称", "持股比例", "认缴出资额", "认缴出资日期"}
+    //FIXME: better api -> stockchart/stockchartAjax?pid=13709418951495&drill=0
+	f, _ = utils.ExportExcel("股东信息", shHeaders, shData, f)
 
 	for k, s := range enInfo.ensMap {
 		if s.total > 0 && s.api != "" {
@@ -99,6 +128,12 @@ func outPutExcelByEnInfo(enInfo EnInfo, options *common.ENOptions) {
 
 }
 
+func getMoreInfos(pid string, options *common.ENOptions) gjson.Result {
+	urls := "https://aiqicha.baidu.com/detail/basicAllDataAjax?pid=" + pid
+	content := common.GetReq(urls, options)
+    return gjson.Get(string(content), "data")
+}
+
 // getCompanyInfoById 获取公司基本信息
 // pid 公司id
 // isSearch 是否递归搜索信息【分支机构、对外投资信息】
@@ -116,15 +151,50 @@ func getCompanyInfoById(pid string, isSearch bool, options *common.ENOptions) En
 	enInfo.openStatus = res.Get("openStatus").String()
 	enInfo.telephone = res.Get("telephone").String()
 	enInfo.email = res.Get("email").String()
+	enInfo.website = res.Get("website").String()
+	enInfo.addr = res.Get("addr").String()
+	enInfo.startDate = res.Get("startDate").String()
+	enInfo.regCapital = res.Get("regCapital").String()
+	enInfo.licenseNumber = res.Get("licenseNumber").String()
+	enInfo.taxNo = res.Get("taxNo").String()
+	enInfo.scope = res.Get("scope").String()
 	gologger.Infof("企业基本信息\n")
 	data := [][]string{
 		{"PID", enInfo.Pid},
 		{"企业名称", enInfo.EntName},
 		{"法人代表", enInfo.legalPerson},
 		{"开业状态", enInfo.openStatus},
+		{"官网", enInfo.website},
+		{"地址", enInfo.addr},
+		{"成立日期", enInfo.startDate},
+		{"注册资本", enInfo.regCapital},
+		{"工商注册号", enInfo.licenseNumber},
+		{"税号", enInfo.taxNo},
 		{"电话", enInfo.telephone},
 		{"邮箱", enInfo.email},
+		{"经营范围", enInfo.scope},
 	}
+    minfos := getMoreInfos(pid, options)
+    enInfo.industry = minfos.Get("basicData.industry").String()
+    enInfo.entType = minfos.Get("basicData.entType").String()
+    enInfo.openTime = minfos.Get("basicData.openTime").String()
+    data = append(data, []string{"所属行业", minfos.Get("basicData.industry").String()})
+    data = append(data, []string{"企业类型", minfos.Get("basicData.entType").String()})
+    data = append(data, []string{"营业期限", minfos.Get("basicData.openTime").String()})
+
+    var shareholders []Shareholder
+    for i := int64(0); i < minfos.Get("shareholdersData.list.#").Int(); i++ {
+        var shareholder Shareholder
+        shareholder.name = minfos.Get(fmt.Sprintf("shareholdersData.list.%d.name", i)).String()
+        //shareholder.positionTitle = minfos.Get(fmt.Sprintf("shareholdersData.list.%d.positionTitle", i)).String()
+        retio := strings.Split(minfos.Get(fmt.Sprintf("shareholdersData.list.%d.subRate", i)).String(), "%")[0]
+        shareholder.subMoney = minfos.Get(fmt.Sprintf("shareholdersData.list.%d.subMoney", i)).String()
+        shareholder.subDate = minfos.Get(fmt.Sprintf("shareholdersData.list.%d.subDate", i)).String()
+        percent, _ := strconv.ParseFloat(retio, 32)
+        shareholder.subRatio = float32(percent)
+        shareholders = append(shareholders, shareholder)
+    }
+	enInfo.shareholders = shareholders
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetAlignment(tablewriter.ALIGN_CENTER)
 	table.AppendBulk(data)
@@ -314,11 +384,17 @@ func getInfoList(pid string, types string, options *common.ENOptions) []gjson.Re
 
 // SearchName 根据企业名称搜索信息
 func SearchName(options *common.ENOptions) []gjson.Result {
-	fmt.Println(options.KeyWord)
 	name := options.KeyWord
-	urls := "https://aiqicha.baidu.com/s/advanceFilterAjax?q=" + name + "&p=1&s=10&t=0"
+	urls := "https://aiqicha.baidu.com/s?q=" + name + "&p=1&s=10&t=0"
 	content := common.GetReq(urls, options)
-	enList := gjson.Get(string(content), "data.resultList").Array()
+
+	page, _ := htmlquery.Parse(strings.NewReader(string(content)))
+    list := htmlquery.Find(page, "//script")
+    //fmt.Println(htmlquery.InnerText(list[4])) // output @href value
+    data := strings.SplitAfterN(htmlquery.InnerText(list[4]), "\n", 2)
+    js := data[0][0:len(data[0])-2]
+
+	enList := gjson.Get(js, "result.resultList").Array()
 
 	if len(enList) == 0 {
 		gologger.Errorf("没有查询到关键词 “%s” ", name)

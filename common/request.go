@@ -23,7 +23,7 @@ func GetReq(url string, options *ENOptions) []byte {
 		"Accept":     {"text/html, application/xhtml+xml, image/jxr, */*"},
 		"Cookie":     {options.CookieInfo},
 		//"Accept-Encoding": {"gzip, deflate"},
-		"Referer": {"https://www.baidu.com"},
+		"Referer": {"https://aifanfan.baidu.com/"},
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -41,6 +41,5 @@ func GetReq(url string, options *ENOptions) []byte {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 	_ = resp.Body.Close()
-	//page, _ := htmlquery.Parse(strings.NewReader(string(body)))
 	return body
 }

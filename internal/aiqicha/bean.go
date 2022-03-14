@@ -42,10 +42,29 @@ type EnInfo struct {
 	telephone   string
 	branchNum   int64
 	investNum   int64
+    website     string
+    addr        string
+    startDate   string
+    regCapital  string
+    licenseNumber string
+    taxNo       string
+    industry    string
+    entType     string
+    openTime    string
+    scope       string
 	//info
 	infos  map[string][]gjson.Result
 	ensMap map[string]*EnsGo
 	//other
+    shareholders []Shareholder
 	investInfos map[string]EnInfo
 	branchInfos map[string]EnInfo
+}
+
+type Shareholder struct {
+    name        string
+    subRatio    float32
+    subMoney    string
+    subDate     string
+    //positionTitle   string
 }
