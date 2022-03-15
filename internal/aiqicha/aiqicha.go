@@ -4,7 +4,12 @@ package aiqicha
  * admin@wgpsec.org
  */
 import (
+	"os"
 	"fmt"
+	"strconv"
+	"strings"
+    "io/ioutil"
+
 	"github.com/olekukonko/tablewriter"
     "github.com/antchfx/htmlquery"
 	"github.com/tidwall/gjson"
@@ -13,9 +18,6 @@ import (
 	"github.com/wgpsec/ENScan/common/utils"
 	"github.com/wgpsec/ENScan/common/utils/gologger"
 	"github.com/xuri/excelize/v2"
-	"os"
-	"strconv"
-	"strings"
 )
 
 // pageParseJson 提取页面中的JSON字段
@@ -56,9 +58,23 @@ func GetEnInfoByPid(options *common.ENOptions) {
     invest := res.infos["invest"]
     if options.GetAll && len(invest) > 0 {
 		for _, t := range invest {
+            name := t.Get("entName").String() + ".xlsx"
             var newOption common.ENOptions
+            files, _ := ioutil.ReadDir("excels")
+            var exists bool
+            for _, file := range files {
+                if file.IsDir() {
+                    continue
+                } else if file.Name() == name {
+                    fmt.Printf("%s has been saved, ignore it\n", file.Name())
+                    exists = true
+                    break
+                }
+            }
+            if exists {
+                continue
+            }
             newOption.CompanyID = t.Get("pid").String()
-            fmt.Println(newOption.CompanyID)
             newOption.CookieInfo = options.CookieInfo
             newOption.ScanType = options.ScanType
             newOption.GetAll = options.GetAll
