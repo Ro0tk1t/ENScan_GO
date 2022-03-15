@@ -78,7 +78,7 @@ func outPutExcelByEnInfo(enInfo EnInfo, options *common.ENOptions) {
 	}
 	f, _ = utils.ExportExcel("基本信息", baseHeaders, baseData, f)
 
-    shHeaders := []string{"股东名称", "持股比例", "认缴出资额", "认缴出资日期"}
+    shHeaders := []string{"股东名称", "持股比例 (%)", "认缴出资额", "认缴出资日期"}
     var shData [][]interface{}
     for _, s := range enInfo.shareholders {
         var str []interface{}
@@ -243,8 +243,8 @@ func getCompanyInfoById(pid string, isSearch bool, options *common.ENOptions) En
 	ensInfoMap["wechatoa"].keyWord = []string{"名称", "ID", "描述", "LOGO", "二维码", "归属公司"}
 
 	ensInfoMap["enterprisejob"].api = "c/enterprisejobAjax"
-	ensInfoMap["enterprisejob"].field = []string{"jobTitle", "location", "education", "publishDate", "desc"}
-	ensInfoMap["enterprisejob"].keyWord = []string{"职位名称", "工作地点", "学历要求", "发布日期", "招聘描述"}
+	ensInfoMap["enterprisejob"].field = []string{"jobTitle", "location", "salary", "education", "publishDate", "desc"}
+	ensInfoMap["enterprisejob"].keyWord = []string{"职位名称", "工作地点", "薪资", "学历要求", "发布日期", "招聘描述"}
 
 	ensInfoMap["copyright"].api = "detail/copyrightAjax"
 	ensInfoMap["copyright"].field = []string{"softwareName", "shortName", "softwareType", "typeCode", "regDate"}
