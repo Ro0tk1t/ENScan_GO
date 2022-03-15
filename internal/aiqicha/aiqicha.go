@@ -113,7 +113,7 @@ func outPutExcelByEnInfo(enInfo EnInfo, options *common.ENOptions) {
 	}
 	f, _ = utils.ExportExcel("基本信息", baseHeaders, baseData, f)
 
-    shHeaders := []string{"股东名称", "持股比例 (%)", "认缴出资额", "认缴出资日期"}
+    shHeaders := []string{"股东名称", "持股比例 (%)", "认缴出资额", "认缴出资日期", "pid"}
     var shData [][]interface{}
     for _, s := range enInfo.shareholders {
         var str []interface{}
@@ -125,6 +125,7 @@ func outPutExcelByEnInfo(enInfo EnInfo, options *common.ENOptions) {
         }
         str = append(str, s.subMoney)
         str = append(str, s.subDate)
+        str = append(str, s.pid)
         shData = append(shData, str)
     }
 
@@ -223,6 +224,7 @@ func getCompanyInfoById(pid string, isSearch bool, options *common.ENOptions) En
         retio := strings.Split(minfos.Get(fmt.Sprintf("shareholdersData.list.%d.subRate", i)).String(), "%")[0]
         shareholder.subMoney = minfos.Get(fmt.Sprintf("shareholdersData.list.%d.subMoney", i)).String()
         shareholder.subDate = minfos.Get(fmt.Sprintf("shareholdersData.list.%d.subDate", i)).String()
+        shareholder.pid = minfos.Get(fmt.Sprintf("shareholdersData.list.%d.pid", i)).String()
         percent, _ := strconv.ParseFloat(retio, 32)
         shareholder.subRatio = float32(percent)
         shareholders = append(shareholders, shareholder)

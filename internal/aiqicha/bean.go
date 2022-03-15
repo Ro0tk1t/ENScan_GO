@@ -63,6 +63,7 @@ type EnInfo struct {
 
 type Shareholder struct {
     name        string
+    pid         string
     subRatio    float32
     subMoney    string
     subDate     string
