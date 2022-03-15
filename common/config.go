@@ -11,6 +11,7 @@ type ENOptions struct {
 	IsGetBranch bool
 	IsInvestRd  bool
 	InvestNum   int
+    Sleep       int
 	GetFlags    string
 	Version     bool
 }

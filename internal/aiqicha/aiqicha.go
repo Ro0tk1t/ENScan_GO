@@ -6,6 +6,7 @@ package aiqicha
 import (
 	"os"
 	"fmt"
+    "time"
 	"strconv"
 	"strings"
     "io/ioutil"
@@ -66,7 +67,7 @@ func GetEnInfoByPid(options *common.ENOptions) {
                 if file.IsDir() {
                     continue
                 } else if file.Name() == name {
-                    fmt.Printf("%s has been saved, ignore it\n", file.Name())
+                    gologger.Infof("%s has been saved, ignore it\n", file.Name())
                     exists = true
                     break
                 }
@@ -74,6 +75,8 @@ func GetEnInfoByPid(options *common.ENOptions) {
             if exists {
                 continue
             }
+            gologger.Infof("wait %d seconds", options.Sleep)
+            time.Sleep(time.Duration(options.Sleep)*time.Second)
             newOption.CompanyID = t.Get("pid").String()
             newOption.CookieInfo = options.CookieInfo
             newOption.ScanType = options.ScanType
@@ -82,6 +85,7 @@ func GetEnInfoByPid(options *common.ENOptions) {
             newOption.IsInvestRd = options.IsInvestRd
             newOption.InvestNum = options.InvestNum
             newOption.GetFlags = options.GetFlags
+            newOption.Sleep = options.Sleep
             GetEnInfoByPid(&newOption)
         }
     }
