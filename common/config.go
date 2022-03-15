@@ -7,6 +7,7 @@ type ENOptions struct {
 	Output      string
 	CookieInfo  string
 	ScanType    string
+    GetAll      bool
 	IsGetBranch bool
 	IsInvestRd  bool
 	InvestNum   int

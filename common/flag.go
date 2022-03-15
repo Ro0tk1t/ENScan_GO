@@ -28,6 +28,7 @@ func Banner() {
 func Flag(Info *ENOptions) {
 	Banner()
 	flag.StringVar(&Info.KeyWord, "n", "", "公司名称")
+	flag.BoolVar(&Info.GetAll, "all", false, "是否获取所有投资公司")
 	flag.StringVar(&Info.CompanyID, "i", "", "公司ID")
 	flag.StringVar(&Info.InputFile, "f", "", "包含公司ID的文件")
 	flag.StringVar(&Info.CookieInfo, "c", "", "Cookie信息")

@@ -16,7 +16,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // pageParseJson 提取页面中的JSON字段
@@ -54,6 +53,22 @@ func GetEnInfoByPid(options *common.ENOptions) {
 
 	//导出 【2021.11.7】 暂时还不能一起投资的企业和分支机构的其他信息
 	outPutExcelByEnInfo(res, options)
+    invest := res.infos["invest"]
+    if options.GetAll && len(invest) > 0 {
+		for _, t := range invest {
+            var newOption common.ENOptions
+            newOption.CompanyID = t.Get("pid").String()
+            fmt.Println(newOption.CompanyID)
+            newOption.CookieInfo = options.CookieInfo
+            newOption.ScanType = options.ScanType
+            newOption.GetAll = options.GetAll
+            newOption.IsGetBranch = options.IsGetBranch
+            newOption.IsInvestRd = options.IsInvestRd
+            newOption.InvestNum = options.InvestNum
+            newOption.GetFlags = options.GetFlags
+            GetEnInfoByPid(&newOption)
+        }
+    }
 
 }
 
@@ -118,9 +133,7 @@ func outPutExcelByEnInfo(enInfo EnInfo, options *common.ENOptions) {
 
 	f.DeleteSheet("Sheet1")
 	// Save spreadsheet by the given path.
-	savaPath := "" +
-		time.Now().Format("2006-01-02") +
-		enInfo.EntName + strconv.FormatInt(time.Now().Unix(), 10) + ".xlsx"
+	savaPath := "excels/" + enInfo.EntName + ".xlsx"
 	if err := f.SaveAs(savaPath); err != nil {
 		gologger.Fatalf("导出失败：%s", err)
 	}
@@ -255,8 +268,8 @@ func getCompanyInfoById(pid string, isSearch bool, options *common.ENOptions) En
 	ensInfoMap["supplier"].keyWord = []string{"供应商名称", "来源", "所属公司", "日期"}
 
 	ensInfoMap["invest"].api = "detail/investajax" //对外投资
-	ensInfoMap["invest"].field = []string{"entName", "openStatus", "regRate", "data"}
-	ensInfoMap["invest"].keyWord = []string{"公司名称", "状态", "投资比例", "数据信息"}
+	ensInfoMap["invest"].field = []string{"entName", "openStatus", "regRate", "data", "pid"}
+	ensInfoMap["invest"].keyWord = []string{"公司名称", "状态", "投资比例", "数据信息", "pid"}
 
 	ensInfoMap["branch"].api = "detail/branchajax" //分支机构
 	ensInfoMap["branch"].field = []string{"entName", "openStatus", "data"}
@@ -348,35 +361,20 @@ func getInfoList(pid string, types string, options *common.ENOptions) []gjson.Re
 		data := gjson.Get(string(content), "data")
 		//判断一个获取的特殊值
 		if types == "relations/relationalMapAjax" {
-            fields := []string{"data.investRecordData", "data.directorsData"}
-            for _, field := range fields {
-                data = gjson.Get(string(content), field)
-                pageCount := data.Get("pageCount").Int()
-                if pageCount > 1 {
-                    for i := 1; int(pageCount) >= i; i++ {
-                        gologger.Infof("当前：%s,%d\n", types, i)
-                        reqUrls := urls + "&p=" + strconv.Itoa(i)
-                        content = common.GetReq(reqUrls, options)
-                        listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
-                    }
-                } else {
-                    listData = data.Get("list").Array()
-                }
-            }
-        } else {
-            //判断是否多页，遍历获取所有数据
-            pageCount := data.Get("pageCount").Int()
-            if pageCount > 1 {
-                for i := 1; int(pageCount) >= i; i++ {
-                    gologger.Infof("当前：%s,%d\n", types, i)
-                    reqUrls := urls + "&p=" + strconv.Itoa(i)
-                    content = common.GetReq(reqUrls, options)
-                    listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
-                }
-            } else {
-                listData = data.Get("list").Array()
-            }
-        }
+			data = gjson.Get(string(content), "data.investRecordData")
+		}
+		//判断是否多页，遍历获取所有数据
+		pageCount := data.Get("pageCount").Int()
+		if pageCount > 1 {
+			for i := 1; int(pageCount) >= i; i++ {
+				gologger.Infof("当前：%s,%d\n", types, i)
+				reqUrls := urls + "&p=" + strconv.Itoa(i)
+				content = common.GetReq(reqUrls, options)
+				listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
+			}
+		} else {
+			listData = data.Get("list").Array()
+		}
 	}
 	return listData
 
